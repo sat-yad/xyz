@@ -1,9 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import '../index.css'; // Make sure to include this line to import the CSS
+import React, { useState } from "react";
+import axios from "axios";
+import "../index.css"; // Ensure CSS import for styles
 
 function ImageEditor() {
   const [image, setImage] = useState(null);
-  const [editedImage, setEditedImage] = useState(null);
+  const [prompt, setPrompt] = useState("");
+  const [mask, setMask] = useState("");
+  const [depth, setDepth] = useState("");
+  const [harmonizedBackgroundDepth, setHarmonizedBackgroundDepth] =
+    useState("");
+  const [imageIdentity, setImageIdentity] = useState("");
   const [rotationAngle, setRotationAngle] = useState(0);
   const [rotationAxisX, setRotationAxisX] = useState(0);
   const [rotationAxisY, setRotationAxisY] = useState(1); // Default to Y-axis rotation
@@ -14,45 +20,32 @@ function ImageEditor() {
   const [foregroundWeight, setForegroundWeight] = useState(1.5);
   const [backgroundWeight, setBackgroundWeight] = useState(1.25);
 
-  useEffect(() => {
-    applyTransformations();
-  }, [image, rotationAngle, rotationAxisX, rotationAxisY, rotationAxisZ, translationX, translationY, translationZ, foregroundWeight, backgroundWeight]);
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setImage(event.target.result);
-      };
-      reader.readAsDataURL(file);
+  const handlePromptSubmit = async (e) => {
+    e.preventDefault();
+    if (prompt) {
+      try {
+        const response = await axios.post("http://127.0.0.1:7860/api/predict", {
+          prompt,
+          mask: mask || null,
+          depth: depth || null,
+          harmonized_background_depth: harmonizedBackgroundDepth || null,
+          image_identity: imageIdentity || null,
+          rotation_angle: rotationAngle,
+          rotation_axis_x: rotationAxisX,
+          rotation_axis_y: rotationAxisY,
+          rotation_axis_z: rotationAxisZ,
+          translation_x: translationX,
+          translation_y: translationY,
+          translation_z: translationZ,
+          foreground_weight: foregroundWeight,
+          background_weight: backgroundWeight,
+        });
+        const imageData = response.data.image; // Adjust based on actual API response structure
+        setImage(imageData);
+      } catch (error) {
+        console.error("Error fetching the image:", error);
+      }
     }
-  };
-
-  const applyTransformations = () => {
-    if (!image) return;
-
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-
-    img.onload = () => {
-      const scale = Math.min(800 / img.width, 800 / img.height); // Scale image to fit within 800x800
-      canvas.width = img.width * scale;
-      canvas.height = img.height * scale;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Apply transformations
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate((rotationAngle * Math.PI) / 180);
-      ctx.translate(translationX, translationY);
-
-      // Apply weights and draw image
-      ctx.drawImage(img, -img.width / 2 * scale, -img.height / 2 * scale, img.width * scale * foregroundWeight, img.height * scale * backgroundWeight);
-      setEditedImage(canvas.toDataURL());
-    };
-
-    img.src = image;
   };
 
   return (
@@ -60,12 +53,49 @@ function ImageEditor() {
       <div className="flex flex-col lg:flex-row justify-between items-start bg-gray-800 p-6 rounded-lg shadow-lg">
         <div className="w-full lg:w-1/2 bg-gray-900 p-6 rounded-lg shadow-lg mb-6 lg:mb-0 lg:mr-6">
           <h2 className="text-2xl font-bold mb-4 text-white">Edit Object</h2>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="mb-4 w-full p-2 text-black rounded"
-          />
+          <form onSubmit={handlePromptSubmit}>
+            <input
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Enter a prompt"
+              className="mb-4 w-full p-2 text-black rounded"
+            />
+            <input
+              type="text"
+              value={mask}
+              onChange={(e) => setMask(e.target.value)}
+              placeholder="Mask URL (optional)"
+              className="mb-4 w-full p-2 text-black rounded"
+            />
+            <input
+              type="text"
+              value={depth}
+              onChange={(e) => setDepth(e.target.value)}
+              placeholder="Depth URL (optional)"
+              className="mb-4 w-full p-2 text-black rounded"
+            />
+            <input
+              type="text"
+              value={harmonizedBackgroundDepth}
+              onChange={(e) => setHarmonizedBackgroundDepth(e.target.value)}
+              placeholder="Harmonized Background Depth URL (optional)"
+              className="mb-4 w-full p-2 text-black rounded"
+            />
+            <input
+              type="text"
+              value={imageIdentity}
+              onChange={(e) => setImageIdentity(e.target.value)}
+              placeholder="Image Identity URL (optional)"
+              className="mb-4 w-full p-2 text-black rounded"
+            />
+            <button
+              type="submit"
+              className="mb-4 w-full p-2 text-white bg-blue-500 rounded"
+            >
+              Fetch Image
+            </button>
+          </form>
           <div className="mb-4">
             <label className="block mb-2 text-white">Rotation Angle</label>
             <input
@@ -163,7 +193,9 @@ function ImageEditor() {
           <div>
             <h3 className="text-xl font-bold mb-2 text-white">Edited Image</h3>
             <div className="variable-image-container">
-              {editedImage && <img src={editedImage} alt="Edited" className="variable-image" />}
+              {image && (
+                <img src={image} alt="Edited" className="variable-image" />
+              )}
             </div>
           </div>
         </div>
