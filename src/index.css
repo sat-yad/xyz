@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+.fixed-image-container {
+  width: 100%;
+  max-width: 300px; /* Fixed width for input image */
+  height: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  margin: 0 auto; /* Center the input image */
+}
+
+.fixed-image {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.variable-image-container {
+  width: 100%;
+  height: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.variable-image {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
